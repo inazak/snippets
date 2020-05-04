@@ -10,20 +10,20 @@ unless(defined($chapter)){ $chapter = "-----" }
 my $text = do { local $/; <> };
 
 my $done = undef;
-while ($text =~ m{ href="(https://1.bp.blogspot.com/.*?/s1600/)(\d+[.](jpg|jpeg|png|webp)) }xmsig ) {
+while ($text =~ m{ href="(https://1.bp.blo..pot.c.m/.*?/s1600/)(\d+[.](jpg|jpeg|png|webp)) }xmsig ) {
   print "curl -A \"Mozilla/5.0\" -k ${1}${2} > ./${chapter}${2}\n";
   $done = 1;
 }
 
 unless (defined $done) {
-while ($text =~ m{ src="(https://1.bp.blogspot.com/.*?/s1600/)(\d+[.](jpg|jpeg|png|webp)) }xmsig ) {
+while ($text =~ m{ src="(https://1.bp.blo..pot.c.m/.*?/s1600/)(\d+[.](jpg|jpeg|png|webp)) }xmsig ) {
   print "curl -A \"Mozilla/5.0\" -k ${1}${2} > ./${chapter}${2}\n";
   $done = 1;
 }}
 
 unless (defined $done) {
 my $count = 1;
-while ($text =~ m{ src="?(https://i.imgur.com/)(.*?[.](jpg|jpeg|png|webp)) }xmsig ) {
+while ($text =~ m{ src="?(https://i.im.ur.c.m/)(.*?[.](jpg|jpeg|png|webp)) }xmsig ) {
   my $number = sprintf("%03d", $count); $count++;
   print "curl -A \"Mozilla/5.0\" -k ${1}${2} > ./${chapter}${number}${2}\n";
   $done = 1;
@@ -31,14 +31,14 @@ while ($text =~ m{ src="?(https://i.imgur.com/)(.*?[.](jpg|jpeg|png|webp)) }xmsi
 
 unless (defined $done) {
 my $count = 1;
-while ($text =~ m{ url="?(https://i.imgur.com/)(.*?[.](jpg|jpeg|png|webp)) }xmsig ) {
+while ($text =~ m{ url="?(https://i.im.ur.c.m/)(.*?[.](jpg|jpeg|png|webp)) }xmsig ) {
   my $number = sprintf("%03d", $count); $count++;
   print "curl -A \"Mozilla/5.0\" -k ${1}${2} > ./${chapter}${number}${2}\n";
   $done = 1;
 }}
 
 unless (defined $done) {
-while ($text =~ m{ src="(https://v93.mangabeast.com/manga/Go-......-..-......../)(.*?[.](jpg|jpeg|png|webp)) }xmsig ) {
+while ($text =~ m{ src="(https://v93.man....ast.com/manga/Go-......-..-......../)(.*?[.](jpg|jpeg|png|webp)) }xmsig ) {
   print "curl -A \"Mozilla/5.0\" -k ${1}${2} > ./${chapter}${2}\n";
   $done = 1;
 }}
