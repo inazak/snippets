@@ -1,0 +1,95 @@
+@echo off
+rem ! ------------------------------------------------------
+rem ! script : autoftp.cmd
+rem ! ------------------------------------------------------
+
+rem ! ------------------------
+rem ! arguments
+rem ! ------------------------
+set FTP_SERVER=%1
+set FTP_USER=%2
+set FTP_PASS=%3
+set DOWNLOAD_FROM=%4
+
+rem ! ------------------------
+rem ! local directory
+rem ! ------------------------
+set LOCAL_DIR=D:\AutoFtp\Bin
+set DURL_DIR=D:\Target\Input
+set BACKUP_TO=D:\Target\Backup
+set DOWNLOAD_TO=D:\AutoFtp\FtpGet
+
+rem ! ------------------------
+rem ! main script
+rem ! ------------------------
+
+rem ! ----- production is DEBUG=0, test is DEBUG=1 -----
+set DEBUG=0
+
+rem ! ----- temporary files -----
+set FTP_SCRIPT=%LOCAL_DIR%\ftp.txt
+set LOG_FILE=%LOCAL_DIR%\debug_log.txt
+
+rem ! ----- trick of logging on DEBUG==1 -----
+if %DEBUG%==0 ( set LOGGING= ) else ( set LOGGING=^>^> %LOG_FILE% 2^>^&1 )
+
+
+echo *********************************** %LOGGING%
+echo %DATE% %TIME% --- Autoftp Start     %LOGGING%
+
+rem ! ----- create ftp get command script -----
+echo user %FTP_USER% %FTP_PASS%  > %FTP_SCRIPT%
+echo cd %DOWNLOAD_FROM%         >> %FTP_SCRIPT%
+echo lcd %DOWNLOAD_TO%          >> %FTP_SCRIPT%
+echo prompt                     >> %FTP_SCRIPT%
+echo mget *.txt                 >> %FTP_SCRIPT%
+echo bye                        >> %FTP_SCRIPT%
+
+rem ! ----- do ftp get -----
+echo %DATE% %TIME% --- FTP GET Start     %LOGGING%
+ftp -s:%FTP_SCRIPT% -n %FTP_SERVER%      %LOGGING%
+echo %DATE% %TIME% --- FTP GET End       %LOGGING%
+
+
+rem ! ----- create ftp delete command script -----
+echo user %FTP_USER% %FTP_PASS%  > %FTP_SCRIPT%
+echo cd %DOWNLOAD_FROM%         >> %FTP_SCRIPT%
+
+setlocal EnableDelayedExpansion
+set COUNT=0
+
+rem ! ----- check downloaded file one by one -----
+for /f %%x in ('dir /b %DOWNLOAD_TO%\*.end') do (
+  set FILE=%%x
+
+  rem ! ----- copy to backup -----
+  copy %DOWNLOAD_TO%\!FILE:~0,-4!.txt %BACKUP_TO%  %LOGGING%
+
+  rem ! ----- move to target -----
+  move %DOWNLOAD_TO%\!FILE:~0,-4!.txt %DURL_DIR%  %LOGGING%
+
+  rem ! ----- add delete script -----
+  echo delete %DOWNLOAD_FROM%/!FILE:~0,-4!.txt >> %FTP_SCRIPT%
+  
+  rem ! ----- countup -----
+  set /a COUNT=!COUNT!+1
+)
+
+
+rem ! ----- delete file from ftp server -----
+if not %COUNT%==0 (
+
+  rem ! ----- add delete script -----
+  echo bye                >> %FTP_SCRIPT%
+  
+  rem ! ----- do ftp delete -----
+  echo %DATE% %TIME% --- FTP DEL Start     %LOGGING%
+  ftp -s:%FTP_SCRIPT% -n %FTP_SERVER%      %LOGGING%
+  echo %DATE% %TIME% --- FTP DEL End       %LOGGING%
+)
+
+endlocal
+
+rem ! ----- remove script file -----
+del %FTP_SCRIPT%   %LOGGING%
+
