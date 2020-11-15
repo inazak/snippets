@@ -1,0 +1,156 @@
+@if (false)==(false) echo off
+cscript //Nologo /E:JScript "%~f0" %*
+goto :EOF
+@end
+// dump.js
+// is sample [FileStream.js]
+// coded by inazaki keisuke 2008
+//
+// USAGE> cscript dump.js <filename>
+//
+function FileStream(){
+  this.stream = WScript.CreateObject('ADODB.Stream');
+  this.position = 0;
+  this.size = 0;
+  this.eos = true;
+}
+FileStream.prototype = {
+  open : function(){
+    this.stream.Type = 2; //adTypeText
+    this.stream.Charset = 'iso-8859-1';
+    this.stream.Open();
+  },
+  close : function(){
+    this.stream.Close();
+    this.position = 0;
+    this.size = 0;
+    this.eos = true;
+  },
+  loadFromFile : function(filename){
+    this.stream.LoadFromFile(filename);
+    this.size = this.stream.Size;
+    this.eos = this.stream.EOS;
+  },
+  saveToFile : function(filename,option){
+    var option = option || 2; //adSaveCreateOverWrite
+    this.stream.SaveToFile(filename,option);
+  },
+  readToString : function(size){
+    var result='';
+    this.stream.Position = 0;
+    this.stream.Charset = 'ascii';
+    this.stream.Position = this.position;
+    var s1 = this.stream.ReadText(size);
+    this.stream.Position = 0;
+    this.stream.Charset = 'iso-8859-1';
+    this.stream.Position = this.position;
+    var s2 = this.stream.ReadText(size);
+    this.position = this.stream.Position;
+    this.eos = this.stream.EOS;
+    for(var i=0; i<s1.length; i++){
+      result += ('0'+(s1.charCodeAt(i)|(s2.charCodeAt(i)<0x80?0:0x80))
+        .toString(16)).slice(-2);
+    }
+    s1 = s2 = null;
+    return result;
+  },
+  readToArray : function(size){
+    var result = [];
+    var s = this.readToString(size);
+    for(var i=0; i<s.length; i+=2){
+      result.push(parseInt(s.substr(i,2),16));
+    }
+    s = null;
+    return result;
+  },
+  writeFromString : function(str){
+    this.stream.Position = 0;
+    this.stream.Charset = 'iso-8859-1';
+    this.stream.Position = this.position;
+    for(var i=0; i<str.length; i+=2){
+      this.stream.WriteText(String.fromCharCode(
+        parseInt(str.substr(i,2),16)));
+    }
+    this.size = this.stream.Size;
+    this.position = this.stream.Position;
+    this.eos = this.stream.EOS;
+  },
+  writeFromArray : function(arr){
+    var s = '';
+    for(var i=0; i<arr.length; i++){
+      s += ('0'+(arr[i]&0xFF).toString(16)).slice(-2);
+    }
+    this.writeFromString(s);
+    s = null;
+  }
+};
+
+//------------------------------------
+// dump script 
+//------------------------------------
+String.prototype.times = function(count){
+  var result = '';
+  for(var i=0; i<count; i++) result += this;
+  return result;
+}
+function toPrintableChar(c){
+  return ((c<0x20)||(c>0x7e)) ? 0x20 : c ;
+}
+
+
+var offset = WScript.Arguments.Named.Exists('offset') ?
+    parseInt(WScript.Arguments.Named('offset')) : 0;
+if((WScript.Arguments.UnNamed.Count != 1) || (isNaN(offset))){
+  WScript.StdOut.WriteLine(
+    '\n USAGE> dump <filename> [/offset:n]');
+  WScript.Quit(1);
+}
+var size = 128;
+try{
+  var space = ' '.times(99);
+  var stream = new FileStream();
+  stream.open();
+  stream.loadFromFile(WScript.Arguments.Item(0));
+  stream.position = offset;
+  do{
+    WScript.StdOut.Write('\n');
+    var p = stream.position;
+    var hexs = stream.readToString(size).toUpperCase();
+    var chars = '';
+    for(var i=0; i<hexs.length; i+=2){
+      chars += String.fromCharCode(toPrintableChar(
+        parseInt(hexs.substr(i,2),16)));
+    }
+    for(var i=0; i<hexs.length; i+=32){
+      WScript.StdOut.Write(
+        ('00000000'+(i/2+p).toString(16)).slice(-8)+' : ');
+      WScript.StdOut.Write((hexs.substr(i,32).replace(/(\w{16})/g,'$1 ')
+        .replace(/(\w{2})/g,'$1 ') + space).substr(0,52));
+      WScript.StdOut.WriteLine(chars.substr(i/2,16));
+    }
+    if(stream.eos) break;
+    WScript.StdOut.Write('\n if continue [Enter] / quit [type q] >> ');
+  }while(!WScript.StdIn.ReadLine().match(/\s*q\s*/))
+  stream.close();
+}catch(e){
+  WScript.StdOut.Write('Exception: ');
+  WScript.StdOut.WriteLine((e instanceof Error)? e.message: e);
+}
+
+// dump.cmd - binary dump script
+//
+// example :
+// $ dump.cmd dump.cmd
+// 
+// 00000000 : 40 69 66 20 28 66 61 6C  73 65 29 3D 3D 28 66 61    @if (false)==(fa
+// 00000010 : 6C 73 65 29 20 65 63 68  6F 20 6F 66 66 0D 0A 63    lse) echo off  c
+// 00000020 : 73 63 72 69 70 74 20 2F  2F 4E 6F 6C 6F 67 6F 20    script //Nologo
+// 00000030 : 2F 45 3A 4A 53 63 72 69  70 74 20 22 25 7E 66 30    /E:JScript "%~f0
+// 00000040 : 22 20 25 2A 0D 0A 67 6F  74 6F 20 3A 45 4F 46 0D    " %*  goto :EOF
+// 00000050 : 0A 40 65 6E 64 0D 0A 2F  2F 20 64 75 6D 70 2E 6A     @end  // dump.j
+// 00000060 : 73 0D 0A 2F 2F 20 69 73  20 73 61 6D 70 6C 65 20    s  // is sample
+// 00000070 : 5B 46 69 6C 65 53 74 72  65 61 6D 2E 6A 73 5D 0D    [FileStream.js]
+// 
+//  if continue [Enter] / quit [type q] >> q
+//
+
