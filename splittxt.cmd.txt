@@ -1,0 +1,31 @@
+@if (false)==(false) echo off
+cscript /Nologo /E:JScript "%~f0" %*
+goto :EOF
+@end
+
+function _abort(){
+  WScript.StdOut.WriteLine('Usage: split <inputfile> <linecount>');
+  WScript.Quit(1);
+}
+
+if(WScript.Arguments.Count() != 2) _abort();
+var fso = WScript.CreateObject('Scripting.FileSystemObject');
+var filename = WScript.Arguments.Item(0);
+var division = WScript.Arguments.Item(1);
+if(isNaN(division) || (division < 1)) _abort();
+
+var istream = fso.OpenTextFile(filename);
+var ostream = fso.CreateTextFile(filename+'.00001.txt');
+for(var lines=0,files=1; !istream.AtEndOfStream; lines++){
+  if(lines == division){
+    ostream.Close(); lines=0; files++;
+    ostream = fso.CreateTextFile(filename+'.'+('00000'+files).slice(-5)+'.txt');
+  }
+  ostream.WriteLine(istream.ReadLine());
+}
+ostream.Close();
+istream.Close();
+
+// splittxt.cmd - split a file n lines per output file.
+// usage : split.cmd sample.txt 5
+
