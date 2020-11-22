@@ -268,3 +268,105 @@
 ; (+ (+ 1 (/ (* (/ 5 3) (+ 8 (- 9 -4))) (+ (* 7 7) 6))) 2)
 ; gosh> 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; json parser
+
+; (use parsertest)
+; 
+; (define-parser json
+;   (choice
+;     (matches "true"  => 'true)
+;     (matches "false" => 'false)
+;     (matches "null"  => 'null)
+;     json-number
+;     json-string
+;     json-object
+;     json-array))
+; 
+; (define-parser negative-sign "-")
+; (define-parser decimal-part  #/[1-9][0-9]+|[0-9]/)
+; (define-parser fraction-part #/\.[0-9]+/)
+; (define-parser exponent-part #/[eE][-+]?[0-9]+/)
+; 
+; (define-parser json-number
+;   (matches
+;     s <- (option negative-sign "")
+;     d <- decimal-part
+;     f <- (option fraction-part "")
+;     e <- (option exponent-part "")
+;     => (string->number (string-append s d f e))))
+; 
+; (define-parser unicode-escape
+;   (matches
+;     e <- "\\u"
+;     u <- #/[0-9a-fA-F]{4}/
+;     => (x->string (ucs->char (string->number u 16)))))
+; 
+; (define-parser escape-sequence
+;   (matches
+;     e <- "\\"
+;     c <- #/["\\\/bfnrt]/
+;     => (cond ((string=? c "b") "\x08")
+;              ((string=? c "f") "\x0c")
+;              ((string=? c "n") "\n")
+;              ((string=? c "r") "\r")
+;              ((string=? c "t") "\t")
+;              (else (x->string c)))))
+; 
+; (define-parser string-char #/[^"\\\x00-\x1F]/)
+; 
+; (define-parser json-string
+;   (matches
+;     sdq <- "\""
+;     str <- (cat (choice unicode-escape escape-sequence string-char))
+;     edq <- "\""
+;     => str))
+; 
+; (define-parser colon ":")
+; (define-parser comma ",")
+; 
+; (define-parser json-object-member
+;   (matches/skip
+;     key <- json-string
+;     col <- colon
+;     val <- json
+;     => (cons key val)))
+; 
+; (define-parser json-object-members
+;   (join/skip json-object-member comma))
+; 
+; (define-parser json-object
+;   (matches/skip
+;     lcb <- "{"
+;     mem <- json-object-members
+;     rcb <- "}"
+;     => mem))
+; 
+; (define-parser json-array-elements
+;   (join/skip json comma))
+; 
+; (define-parser json-array
+;   (matches/skip
+;     lbr <- "["
+;     elm <- json-array-elements
+;     rbr <- "]"
+;     => (list->vector elm)))
+; 
+; (define-parser json-parser
+;   (matches/skip
+;     j <- json
+;     end <- eos
+;     => j))
+; 
+; (use file.util)
+; (use gauche.time)
+; 
+; (define (main args)
+;   (for-each (lambda (file)
+;               (let ((s (file->string file)))
+;                 ;(time (format #t "~s" (parse json-parser s)))))
+;                 (format #t "~s" (parse json-parser s))))
+;             (cdr args))
+;   0)
+
