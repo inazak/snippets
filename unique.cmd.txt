@@ -1,0 +1,19 @@
+@if (false)==(false) echo off
+cscript //Nologo /E:JScript "%~f0" %*
+goto :EOF
+@end
+
+var data = new Array();
+while(!WScript.StdIn.AtEndOfStream){
+  line = WScript.StdIn.ReadLine();
+  if(data['_'+line] == null) data['_'+line] =1;
+  else data['_'+line] +=1;
+}
+for(key in data){
+  if(data[key] == 1) {
+    WScript.StdOut.WriteLine(key.replace(/^_(.*)$/,"$1"));
+  }
+}
+
+//usage: unique.cmd < sample.txt
+
