@@ -1,0 +1,20 @@
+@if (false)==(false) echo off
+cscript //Nologo /E:JScript "%~f0" %*
+goto :EOF
+@end
+
+usage = 'match "REGEXP" < input.txt > output.txt';
+if(WScript.Arguments.Count() != 1){
+  WScript.StdOut.WriteLine('ParameterError:'+usage);
+  WScript.Quit(1);
+}
+var re = new RegExp(WScript.Arguments.Item(0),'g');
+
+while(!WScript.StdIn.AtEndOfStream){
+  if(s = WScript.StdIn.ReadLine().match(re)){
+    WScript.StdOut.WriteLine(s);
+  }
+}
+
+// match.cmd - text search by regex
+// usage : match "REGEXP" < sample.txt
