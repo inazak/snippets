@@ -1,0 +1,74 @@
+#!/bin/sh
+set -u
+
+if [ $# -ne 1 ]
+then
+  echo "USAGE : SOMETABLE_sequence_exec.sh KEY.txt"
+  exit 1
+fi
+
+KEY_FILE=$1
+YMDHMS=`perl -e '($sec,$min,$h,$d,$m,$y)=(localtime(time))[0..5];printf("%04d%02d%02d%02d%02d%02d",$y+1900,$m+1,$d,$h,$min,$sec);'`
+WORKDIR=/tmp/work
+
+
+create_sqlfile() {
+
+KEY=$1
+SQLFILE_PATH=$2
+RESULT_PATH=$3
+
+cat <<SQLFILE_END > $SQLFILE_PATH
+
+set termout off
+set pagesize 0
+set feedback off
+set linesize 60
+
+column SOMETABLE.KEY format a12
+column SOMETABLE.DATA format a20
+
+spool $RESULT_PATH
+
+select SOMETABLE.KEY || ',' || SOMETABLE.DATA
+  from SOMETABLE
+ where SOMETABLE.ENV = '1'
+   and SOMETABLE.KEY = '$KEY'
+;
+
+spool off
+exit
+
+SQLFILE_END
+
+}
+
+### file check
+
+perl -wln -e 'if($_!~/^(\d{10})?$/){exit 1}' $KEY_FILE
+
+if [ $? -ne 0 ]
+then
+  echo "ERROR: KEY File Format"
+  exit 1
+fi
+
+### main loop
+
+for KEY in $(cat $KEY_FILE) ; do
+
+  ## create sqlfile by KEY
+  create_sqlfile $KEY $WORKDIR/${YMDHMS}_sql.tmp $WORKDIR/${YMDHMS}_out.tmp
+
+  ## exec sqlfile
+  su - orauser -c "sqlplus user/cred @$WORKDIR/${YMDHMS}_sql.tmp"
+
+  ## concatnate result
+  cat $WORKDIR/${YMDHMS}_out.tmp >> $WORKDIR/${YMDHMS}_out.txt
+
+  ## current mark
+  echo $KEY is done
+
+done
+
+rm $WORKDIR/${YMDHMS}_sql.tmp $WORKDIR/${YMDHMS}_out.tmp
