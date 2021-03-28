@@ -1,0 +1,1 @@
+@powershell -NoProfile -ExecutionPolicy unrestricted -Command "Start-Process -FilePath xcopy.exe -ArgumentList '/Y \"From Directory\\Name\" \"To\"' -Verb runas -WindowStyle Hidden"
